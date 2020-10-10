@@ -8,30 +8,40 @@
 
 import Foundation
 
-struct MemoryGame<CardContent> {
+struct MemoryGame<CardContent> where CardContent: Equatable {
     var cards: Array<Card>
+    
+    var indexOfTheOneAndOnlyFaceUpCard: Int? {
+        get {cards.indices.filter { cards[$0].isFaceUp }.only}
+        set {
+            for index in cards.indices {
+                cards[index].isFaceUp = index == newValue
+            }
+        }
+    }
     
     mutating func choose(_ card: Card){
         print("Card choosen: \(card)")
-        let choosenIndex: Int = self.index(of: card)
-        self.cards[choosenIndex].isFaceUp = !self.cards[choosenIndex].isFaceUp
-    }
-    
-    func index(of card: Card) -> Int {
-        for index in 0..<self.cards.count {
-            if self.cards[index].id == card.id {
-                return index
+        if let choosenIndex = cards.firstIndex(matching: card), !cards[choosenIndex].isFaceUp, !cards[choosenIndex].isMatched {
+            if let potentialMatchIndex = indexOfTheOneAndOnlyFaceUpCard {
+                if cards[choosenIndex].content == cards[potentialMatchIndex].content {
+                    cards[choosenIndex].isMatched = true
+                    cards[potentialMatchIndex].isMatched = true
+                }
+                self.cards[choosenIndex].isFaceUp = true
+            } else {
+                indexOfTheOneAndOnlyFaceUpCard = choosenIndex
             }
+            
         }
-        return 0 // TODO: bogus!
     }
     
     init(numberOfPairsOfCards: Int, cardContentFactory: (Int) -> CardContent){
         cards = Array<Card>()
         for pairIndex in 0..<numberOfPairsOfCards {
             let content = cardContentFactory(pairIndex)
-            cards.append(Card(isFaceUp: true, isMatched: false, content: content, id: pairIndex*2))
-            cards.append(Card(isFaceUp: true, isMatched: false, content: content, id: pairIndex*2+1))
+            cards.append(Card(isFaceUp: false, isMatched: false, content: content, id: pairIndex*2))
+            cards.append(Card(isFaceUp: false, isMatched: false, content: content, id: pairIndex*2+1))
         }
         cards.shuffle()
     }
