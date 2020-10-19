@@ -11,13 +11,24 @@ import SwiftUI
 struct EmojiMemoryGameView: View {
     @ObservedObject var viewModel: EmojiMemoryGame
     var body: some View {
-        Grid(viewModel.cards) { card in
-                CardView(card: card).onTapGesture {
-                    self.viewModel.choose(card: card)
+        VStack {
+            Grid(viewModel.cards) { card in
+                    CardView(card: card).onTapGesture {
+                        withAnimation(.linear){
+                            self.viewModel.choose(card: card)
+                        }
+                    }
+                    .padding(5)
                 }
-                .padding(5)
-            }
+        }
         .foregroundColor(Color.orange).padding()
+        Button(action: {
+            withAnimation(.easeInOut) {
+                self.viewModel.resetGame()
+            }
+        }, label: {
+            Text("New Game")
+        })
     }
 }
 
@@ -29,32 +40,29 @@ struct CardView: View {
         }
     }
     
+    @ViewBuilder
     private func body(for size: CGSize) -> some View {
+        if card.isFaceUp || !card.isMatched {
         ZStack {
-            if self.card.isFaceUp {
-                RoundedRectangle(cornerRadius: cornerRadius).fill(Color.white)
-                RoundedRectangle(cornerRadius: cornerRadius).stroke(lineWidth: edgeLineWidth)
-                Text(self.card.content)
-            } else {
-                if !card.isMatched {
-                    RoundedRectangle(cornerRadius: 10.0).fill()
-                }
-            }
+            Pie(startAngle: Angle.degrees(0), endAngle: Angle.degrees(110), clockwise: true).padding(5).opacity(0.4)
+            Text(self.card.content).font(Font.system(size: fontSize(for: size))).rotationEffect(Angle.degrees(card.isMatched ? 360 : 0)).animation(card.isMatched ? Animation.linear(duration: 1).repeatForever(autoreverses: false): .default)
         }
-        .font(Font.system(size: fontSize(for: size)))
+        .cardify(isFaceUp: card.isFaceUp)
+        .transition(AnyTransition.scale)
+        
+        }
     }
     
     // MARK: - Drawing Constants
-    
-    private let cornerRadius: CGFloat = 10.0
-    private let edgeLineWidth: CGFloat = 3
     private func fontSize(for size: CGSize) -> CGFloat {
-        min(size.width, size.height) * 0.75
+        min(size.width, size.height) * 0.7
     }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        EmojiMemoryGameView(viewModel: EmojiMemoryGame())
+        let game =  EmojiMemoryGame()
+        game.choose(card: game.cards[0])
+        return EmojiMemoryGameView(viewModel: game)
     }
 }
